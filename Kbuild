@@ -3,9 +3,10 @@
 subdir-ccflags-y += -DWMT_CREATE_NODE_DYNAMIC=1
 subdir-ccflags-y += -DWMT_IDC_SUPPORT=0
 subdir-ccflags-y += -DMT8163_CONN_PM_WAKEUP_SOURCE
-# Absolute source directory of this repository.  $(src) is absolute for an
-# M= build on older kernels and relative to $(srctree) on newer ones.
-mt8163_conn_dir := $(if $(filter /%,$(src)),$(src),$(abspath $(srctree)/$(src)))
+# Absolute source directory of this repository.  For an M= build $(src) is
+# absolute up to 6.12; from 6.13 kbuild runs in the module directory and
+# $(src) can be relative to it.
+mt8163_conn_dir := $(abspath $(src))
 subdir-ccflags-y += -include $(mt8163_conn_dir)/compat/consys_config.h
 subdir-ccflags-y += -include $(mt8163_conn_dir)/compat/kcompat.h
 subdir-ccflags-y += -include $(mt8163_conn_dir)/compat/legacy_time.h
