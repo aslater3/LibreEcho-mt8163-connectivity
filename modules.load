@@ -1,0 +1,9 @@
+# Load order for the MT8163 CONSYS modules, one per line.  Each module's
+# symbol dependencies are satisfied by the lines above it, so this also
+# works with plain insmod; with modprobe and depmod the order is implied.
+mt8163_wmt_detect
+mt8163_btif
+mt8163_stp_wmt
+mt8163_stp_bt
+mt8163_wmt_wifi
+mt8163_wlan

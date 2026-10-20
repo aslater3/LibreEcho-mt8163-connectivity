@@ -98,7 +98,7 @@ static int __init wmt_detect_abi_init(void)
 	if (ret)
 		goto unregister_region;
 
-	wmt_detect_class = class_create(THIS_MODULE, WMT_DETECT_NAME);
+	wmt_detect_class = mt8163_class_create(WMT_DETECT_NAME);
 	if (IS_ERR(wmt_detect_class)) {
 		ret = PTR_ERR(wmt_detect_class);
 		wmt_detect_class = NULL;
@@ -125,3 +125,6 @@ unregister_region:
 }
 module_init(wmt_detect_abi_init);
 
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("MT8163 WMT detect ABI and combo stub");

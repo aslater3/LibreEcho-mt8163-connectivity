@@ -13,20 +13,18 @@ does: `idme_get_mac_addr()` parses 12 hex characters, two per octet, with
 `kstrtou8(..., 16, ...)` into a scratch buffer, and commits the result only when
 every octet parsed. A malformed or absent value therefore leaves the previous
 NVRAM/default address intact rather than producing a mixed address. The source
-half asserts the driver, Kconfig, and defconfig still implement that algorithm
-and fallback, and that the CI runner executes this file.
+half asserts the driver and build configuration still implement that
+algorithm and fallback.
 
-Run from the kernel source root:
-
-    python3 drivers/misc/mediatek/mt8163-connectivity/test_idme_factory_mac_contract.py
+    python3 tests/test_idme_factory_mac_contract.py
 """
 
 from pathlib import Path
 import unittest
 
 
-ROOT = Path(__file__).resolve().parents[4]
-CONNECTIVITY = ROOT / "drivers/misc/mediatek/mt8163-connectivity"
+ROOT = Path(__file__).resolve().parents[1]
+CONNECTIVITY = ROOT
 GL_INIT = CONNECTIVITY / (
     "conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c"
 )
@@ -34,9 +32,8 @@ GL_KAL = CONNECTIVITY / (
     "conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c"
 )
 WLAN_LIB = CONNECTIVITY / "conn_soc/drv_wlan/mt_wifi/wlan/common/wlan_lib.c"
-KCONFIG = ROOT / "drivers/misc/mediatek/Kconfig"
-DEFCONFIG = ROOT / "arch/arm/configs/mt8163_arm32_defconfig"
-WORKFLOW = ROOT / ".github/workflows/checks.yml"
+CONSYS_CONFIG = ROOT / "compat/consys_config.h"
+KBUILD = ROOT / "Kbuild"
 
 MAC_ADDR_OCTETS = 6
 MAC_ADDR_HEX_CHARS = MAC_ADDR_OCTETS * 2
@@ -150,16 +147,11 @@ class IdmeFactoryMacBehaviourTests(unittest.TestCase):
 
 
 class IdmeSourceContractTests(unittest.TestCase):
-    def test_idme_is_enabled_and_selected_in_the_target_config(self) -> None:
-        config = DEFCONFIG.read_text(encoding="utf-8")
-        self.assertIn("CONFIG_MTK_MT8163_CONSYS=y", config)
-        self.assertIn("CONFIG_IDME=y", config)
-
-    def test_kconfig_gates_idme_on_the_retained_consys_path(self) -> None:
-        kconfig = KCONFIG.read_text(encoding="utf-8")
-        block = kconfig.split("config IDME", 1)[1].split("\nconfig ", 1)[0]
-        self.assertIn("depends on MTK_MT8163_CONSYS && OF", block)
-        self.assertIn("default y if MTK_MT8163_CONSYS", block)
+    def test_idme_is_enabled_in_the_build_config(self) -> None:
+        config = CONSYS_CONFIG.read_text(encoding="utf-8")
+        self.assertIn("#define CONFIG_IDME 1\n", config)
+        kbuild = KBUILD.read_text(encoding="utf-8")
+        self.assertIn("-include $(mt8163_conn_dir)/compat/consys_config.h", kbuild)
 
     def test_driver_reads_the_idme_nodes_by_path(self) -> None:
         source = GL_INIT.read_text(encoding="utf-8")
@@ -255,14 +247,6 @@ class IdmeSourceContractTests(unittest.TestCase):
             "prRegInfo->ManufactureSource == MANUFACTURE_IDME", 1
         )[1].split("} else", 1)[0]
         self.assertIn("idme_wifi_mfg.u2Part1OwnVersion", branch)
-
-    def test_contract_runs_in_the_arm32_ci_runner(self) -> None:
-        workflow = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn(
-            "python3 drivers/misc/mediatek/mt8163-connectivity/"
-            "test_idme_factory_mac_contract.py",
-            workflow,
-        )
 
 
 if __name__ == "__main__":

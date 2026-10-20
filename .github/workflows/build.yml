@@ -1,0 +1,175 @@
+name: MT8163 connectivity modules
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      kernel_ref:
+        description: LibreEcho-Linux branch, tag or commit to build against
+        default: main
+  schedule:
+    # Nightly, for the next-LTS compile canary.
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: connectivity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KERNEL_REPOSITORY: aslater3/LibreEcho-Linux
+  NEXT_LTS: "6.18"
+
+jobs:
+  arm32_modules:
+    name: Build against LibreEcho-Linux (6.1)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out connectivity modules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: connectivity
+
+      - name: Check out LibreEcho-Linux
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.KERNEL_REPOSITORY }}
+          ref: ${{ inputs.kernel_ref || 'main' }}
+          persist-credentials: false
+          fetch-depth: 1
+          path: kernel
+
+      - name: Install ARM32 build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            bc binutils-arm-linux-gnueabihf bison build-essential flex \
+            gcc-arm-linux-gnueabihf libelf-dev libssl-dev python3
+
+      - name: Run contract tests
+        run: KERNEL_SRC="$GITHUB_WORKSPACE/kernel" python3 -B connectivity/tests/run.py
+
+      - name: Build kernel
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/kernel-out"
+          kmake() {
+            make -C kernel O="$out" ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- \
+              LD=arm-linux-gnueabihf-ld.bfd "$@"
+          }
+          kmake mt8163_arm32_defconfig
+          kmake olddefconfig
+          grep -qx 'CONFIG_MTK_MT8163_CONSYS_HOST=y' "$out/.config"
+          kmake -j"$(nproc)" zImage modules
+
+      - name: Build modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -C connectivity -j"$(nproc)" KDIR="$RUNNER_TEMP/kernel-out" \
+            ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- \
+            LD=arm-linux-gnueabihf-ld.bfd 2>&1 | tee "$RUNNER_TEMP/modules.log"
+          # modpost reports undefined symbols and section mismatches.
+          ! grep -E '^(ERROR|WARNING): modpost' "$RUNNER_TEMP/modules.log"
+          mkdir -p "$RUNNER_TEMP/modules"
+          grep -v '^#' connectivity/modules.load | while read -r m; do
+            ko="$(find connectivity -name "$m.ko")"
+            test -s "$ko"
+            cp "$ko" "$RUNNER_TEMP/modules/"
+          done
+          cp connectivity/modules.load "$RUNNER_TEMP/modules/"
+
+      - name: Upload modules
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mt8163-connectivity-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: ${{ runner.temp }}/modules
+
+  next_lts_canary:
+    name: Compile canary against the next LTS
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    # Informational until the port lands: a failure here is the port backlog.
+    continue-on-error: true
+    steps:
+      - name: Check out connectivity modules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: connectivity
+
+      - name: Install ARM32 build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            bc binutils-arm-linux-gnueabihf bison build-essential flex \
+            gcc-arm-linux-gnueabihf libelf-dev libssl-dev python3
+
+      - name: Fetch latest Linux ${{ env.NEXT_LTS }}.y
+        shell: bash
+        run: |
+          set -euo pipefail
+          url=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+          tag="$(git ls-remote --tags --refs "$url" "v$NEXT_LTS.*" \
+                 | awk -F/ '{print $3}' | sort -V | tail -1)"
+          test -n "$tag"
+          echo "Building against $tag" >> "$GITHUB_STEP_SUMMARY"
+          git init -q next && git -C next fetch -q --depth 1 "$url" "refs/tags/$tag"
+          git -C next checkout -q FETCH_HEAD
+
+      - name: Configure a compile-only host kernel
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/next-out"
+          kmake() {
+            make -C next O="$out" ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- \
+              LD=arm-linux-gnueabihf-ld.bfd "$@"
+          }
+          kmake multi_v7_defconfig
+          # Upstream has no MTK_MT8163_CONSYS_HOST; WIRELESS_EXT and
+          # WEXT_PRIV have no prompt, so select them through a scratch option.
+          cat >> next/drivers/misc/Kconfig <<'KCONFIG'
+          config LIBREECHO_CANARY_HOST
+          	def_bool y
+          	select WIRELESS_EXT
+          	select WEXT_PRIV
+          KCONFIG
+          next/scripts/config --file "$out/.config" -e MODULES -e ARCH_MEDIATEK \
+            -e NET -e RFKILL -e BT -e BT_BREDR -e BT_LE -e CFG80211 -e CFG80211_WEXT
+          kmake olddefconfig
+          kmake -j"$(nproc)" modules_prepare
+
+      - name: Compile modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          make -C connectivity -k -j"$(nproc)" KDIR="$RUNNER_TEMP/next-out" \
+            ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- \
+            LD=arm-linux-gnueabihf-ld.bfd KBUILD_MODPOST_WARN=1 \
+            > "$RUNNER_TEMP/next.log" 2>&1 || status=$?
+          {
+            echo "### Compile errors by file"
+            echo '```'
+            grep ' error: ' "$RUNNER_TEMP/next.log" | sed -E 's#^.*/connectivity/##; s#^\./##' \
+              | cut -d: -f1 | sort | uniq -c | sort -rn || echo "none"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep ' error: ' "$RUNNER_TEMP/next.log" || true
+          exit "$status"

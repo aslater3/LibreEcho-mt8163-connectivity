@@ -87,7 +87,7 @@ endif
 ccflags-y += -DCFG_SRAM_SIZE_OPTION=$(MTK_SRAM_SIZE_OPTION)
 
 
-MODULE_NAME := wlan_mt
+MODULE_NAME := mt8163_wlan
 
 ccflags-y += -D_HIF_SDIO=1
 
@@ -95,7 +95,7 @@ ccflags-y += -DDBG=0
 ccflags-y += -I$(src)/os -I$(src)/os/linux/include -I$(src)/os/linux/hif/ahb/include
 ccflags-y += -I$(src)/include -I$(src)/include/nic -I$(src)/include/mgmt
 
-obj-$(CONFIG_MTK_COMBO_WIFI) += $(MODULE_NAME).o
+obj-m += $(MODULE_NAME).o
 #obj-m += $(MODULE_NAME).o if CONFIG_MTK_COMBO_WIFI=m ==> obj-m means ko module, not build in obj-y
 
 ifeq ($(strip $(TRUSTONIC_TEE_SUPPORT)),yes)
@@ -185,7 +185,8 @@ ifeq ($(CONFIG_MTK_WAPI_SUPPORT), y)
 MGMT_OBJS += $(MGMT_DIR)wapi.o
 endif
 
-ifeq ($(CONFIG_MTK_WIFI_ANTENNA_SELECT), y)
+# CONFIG_MTK_WIFI_ANTENNA_SELECT is fixed on in compat/consys_config.h.
+ifeq (y, y)
 MGMT_OBJS += $(MGMT_DIR)ant_select.o
 endif
 
