@@ -98,7 +98,7 @@ static int __init wmt_detect_abi_init(void)
 	if (ret)
 		goto unregister_region;
 
-	wmt_detect_class = class_create(THIS_MODULE, WMT_DETECT_NAME);
+	wmt_detect_class = mt8163_class_create(WMT_DETECT_NAME);
 	if (IS_ERR(wmt_detect_class)) {
 		ret = PTR_ERR(wmt_detect_class);
 		wmt_detect_class = NULL;

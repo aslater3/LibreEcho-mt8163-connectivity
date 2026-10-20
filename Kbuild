@@ -7,6 +7,7 @@ subdir-ccflags-y += -DMT8163_CONN_PM_WAKEUP_SOURCE
 # M= build on older kernels and relative to $(srctree) on newer ones.
 mt8163_conn_dir := $(if $(filter /%,$(src)),$(src),$(abspath $(srctree)/$(src)))
 subdir-ccflags-y += -include $(mt8163_conn_dir)/compat/consys_config.h
+subdir-ccflags-y += -include $(mt8163_conn_dir)/compat/kcompat.h
 subdir-ccflags-y += -include $(mt8163_conn_dir)/compat/legacy_time.h
 subdir-ccflags-y += -I$(mt8163_conn_dir)/compat
 subdir-ccflags-y += -I$(mt8163_conn_dir)/btif/common/inc
