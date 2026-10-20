@@ -78,9 +78,19 @@ before a release ships them:
   WMT detect objects declare a license, and the AHB platform remove
   callback is no longer `__exit`.
 
+## Branches
+
+- `main`: the out-of-tree module build described above. LibreEcho-Linux does
+  not use it yet.
+- `linux-6.1-in-tree`: the in-tree source that LibreEcho-Linux builds, as a
+  `git subtree` at `drivers/misc/mediatek/mt8163-connectivity`. It produces
+  the same kernel as LibreEcho-Linux-6.1. Fixes for the shipped kernel go
+  here first.
+
 ## CI
 
-`.github/workflows/build.yml` builds the modules against LibreEcho-Linux
-`main` and fails on any modpost error. A nightly job also compiles them
+`.github/workflows/build.yml` builds the modules against the LibreEcho-Linux
+commit pinned as `KERNEL_REF`, the last one with
+`CONFIG_MTK_MT8163_CONSYS_HOST`. It fails on any modpost error. A nightly job also compiles them
 against the latest stable release of the next LTS (6.18 at present). That
 job only reports: a failure there is the remaining port work.

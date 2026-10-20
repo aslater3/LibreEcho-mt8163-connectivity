@@ -9,7 +9,7 @@ on:
     inputs:
       kernel_ref:
         description: LibreEcho-Linux branch, tag or commit to build against
-        default: main
+        default: c6657e8c3459529e7c9ca43b1a0245f46434d7f5
   schedule:
     # Nightly, for the next-LTS compile canary.
     - cron: "17 3 * * *"
@@ -23,6 +23,11 @@ concurrency:
 
 env:
   KERNEL_REPOSITORY: aslater3/LibreEcho-Linux
+  # LibreEcho-Linux main builds this stack in-tree (as a subtree of the
+  # linux-6.1-in-tree branch) for production parity.  The out-of-tree build
+  # here needs CONFIG_MTK_MT8163_CONSYS_HOST, last present at this commit;
+  # move the pin when the out-of-tree switch lands in LibreEcho-Linux.
+  KERNEL_REF: c6657e8c3459529e7c9ca43b1a0245f46434d7f5
   NEXT_LTS: "6.18"
 
 jobs:
@@ -41,7 +46,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.KERNEL_REPOSITORY }}
-          ref: ${{ inputs.kernel_ref || 'main' }}
+          ref: ${{ inputs.kernel_ref || env.KERNEL_REF }}
           persist-credentials: false
           fetch-depth: 1
           path: kernel
