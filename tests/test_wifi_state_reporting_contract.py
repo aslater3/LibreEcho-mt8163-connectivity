@@ -8,25 +8,25 @@ import textwrap
 import unittest
 
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[1]
 GL_CFG80211 = ROOT / (
-    "drivers/misc/mediatek/mt8163-connectivity/conn_soc/drv_wlan/"
+    "conn_soc/drv_wlan/"
     "mt_wifi/wlan/os/linux/gl_cfg80211.c"
 )
 GL_WEXT = ROOT / (
-    "drivers/misc/mediatek/mt8163-connectivity/conn_soc/drv_wlan/"
+    "conn_soc/drv_wlan/"
     "mt_wifi/wlan/os/linux/gl_wext.c"
 )
 GL_KAL = ROOT / (
-    "drivers/misc/mediatek/mt8163-connectivity/conn_soc/drv_wlan/"
+    "conn_soc/drv_wlan/"
     "mt_wifi/wlan/os/linux/gl_kal.c"
 )
 AIS_FSM = ROOT / (
-    "drivers/misc/mediatek/mt8163-connectivity/conn_soc/drv_wlan/"
+    "conn_soc/drv_wlan/"
     "mt_wifi/wlan/mgmt/ais_fsm.c"
 )
 AIS_INCLUDE = ROOT / (
-    "drivers/misc/mediatek/mt8163-connectivity/conn_soc/drv_wlan/"
+    "conn_soc/drv_wlan/"
     "mt_wifi/wlan/include"
 )
 
