@@ -1,3 +1,3 @@
-obj-$(CONFIG_MTK_COMBO_WIFI) += wlan/
+obj-m += wlan/
 
 

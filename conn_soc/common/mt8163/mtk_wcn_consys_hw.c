@@ -1250,6 +1250,7 @@ INT32 mtk_wcn_consys_hw_wifi_paldo_ctrl(UINT32 enable)
 }
 
 #endif
+EXPORT_SYMBOL(mtk_wcn_consys_hw_wifi_paldo_ctrl);
 INT32 mtk_wcn_consys_hw_vcn28_ctrl(UINT32 enable)
 {
 	if (enable) {

@@ -125,3 +125,6 @@ unregister_region:
 }
 module_init(wmt_detect_abi_init);
 
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("MT8163 WMT detect ABI and combo stub");

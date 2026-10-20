@@ -1,4 +1,4 @@
-obj-$(CONFIG_MTK_COMBO_WIFI) += mt_wifi/
+obj-m += mt_wifi/
 
 
 
