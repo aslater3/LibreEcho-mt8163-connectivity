@@ -83,9 +83,10 @@ before a release ships them:
 - `main`: the out-of-tree module build described above. LibreEcho-Linux does
   not use it yet.
 - `linux-6.1-in-tree`: the in-tree source that LibreEcho-Linux builds, as a
-  `git subtree` at `drivers/misc/mediatek/mt8163-connectivity`. It produces
-  the same kernel as LibreEcho-Linux-6.1. Fixes for the shipped kernel go
-  here first.
+  `git subtree` at `drivers/misc/mediatek/mt8163-connectivity`. LibreEcho-Linux
+  is the product kernel from 0.14.5 on, and its parity check proves it builds
+  the shipped 0.14.4 kernel from the now-archived LibreEcho-Linux-6.1. Fixes
+  for the shipped kernel go here first.
 
 ## CI
 
